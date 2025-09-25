@@ -9,7 +9,9 @@ class TypingTestController extends Controller
 {
     public function index()
     {
-        return view('typing.index');
+        $originalText = file_get_contents(resource_path('views/typing/oak_tree.txt'));
+
+        return view('typing.index', compact('originalText'));
     }
 
     public function create()

@@ -114,12 +114,11 @@
                 @csrf
                 <div id="text-display" class="border border-success rounded p-3 mt-3 bg-light"
                     style="font-size: 18px; line-height: 1.6;">
-                    @php
-                        $originalText =
-                            'The old oak tree had stood at the edge of the meadow for longer than anyone could remember. Its massive branches stretched skyward, a shelter for birds and squirrels, a gathering place for those seeking shade.';
-                    @endphp
+                    @foreach (str_split($originalText) as $char)
+                        <span>{{ $char }}</span>
+                    @endforeach
 
-                    <input type="hidden" name="original" value="{{ $originalText }}">
+                    <input type="hidden" name="original" id="original" value="{{ $originalText }}">
 
                     @foreach (str_split($originalText) as $char)
                         <span>{{ $char }}</span>
@@ -144,62 +143,84 @@
 @stop
 @section('js')
     <script>
-let timeLeft = 60;
-let countdown = null;
-const timer = document.getElementById("timer");
-const inputArea = document.getElementById("input-area");
-const timeField = document.getElementById("timeField");
-const textDisplay = document.querySelectorAll("#text-display span");
-const startBtn = document.getElementById("startBtn");
-const form = document.getElementById("typingForm");
+        let timeLeft = 60;
+        let countdown = null;
+        const timer = document.getElementById("timer");
+        const inputArea = document.getElementById("input-area");
+        const timeField = document.getElementById("timeField");
+        const textDisplay = document.querySelectorAll("#text-display span");
+        const startBtn = document.getElementById("startBtn");
+        const form = document.getElementById("typingForm");
 
-// ✅ Timer solo arranca cuando presionas el botón
-startBtn.addEventListener("click", () => {
-    // Reset por si se reinicia
-    clearInterval(countdown);
-    timeLeft = 60;  
-    timer.textContent = "1:00"; 
-    timeField.value = timeLeft;
-
-    startBtn.disabled = true;   // deshabilitamos botón start
-    inputArea.disabled = false; // habilitamos área de escritura
-    inputArea.focus();
-
-    countdown = setInterval(() => {
-        timeLeft--;
-        timeField.value = timeLeft;
-
-        let minutes = Math.floor(timeLeft / 60);
-        let seconds = timeLeft % 60;
-        timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-        if (timeLeft <= 0) {
+        function submitTypingForm() {
             clearInterval(countdown);
             inputArea.disabled = true;
-            form.submit(); // Enviar automáticamente
+
+            // Asegurarse de que el textarea tenga valor en el formulario
+            const typedInput = document.createElement('input');
+            typedInput.type = 'hidden';
+            typedInput.name = 'typed';
+            typedInput.value = inputArea.value;
+            form.appendChild(typedInput);
+
+            // Tiempo real empleado
+            const timeSpentInput = document.createElement('input');
+            timeSpentInput.type = 'hidden';
+            timeSpentInput.name = 'timeSpent';
+            timeSpentInput.value = 60 - timeLeft;
+            form.appendChild(timeSpentInput);
+
+            form.submit();
         }
-    }, 1000);
-});
+        // ✅ Timer solo arranca cuando presionas el botón
+        startBtn.addEventListener("click", () => {
+            // Reset por si se reinicia
+            clearInterval(countdown);
+            timeLeft = 60;
+            timer.textContent = "1:00";
+            timeField.value = timeLeft;
 
-// ✅ Resaltar letras mientras escribe
-inputArea.addEventListener("input", () => {
-    const typedText = inputArea.value.split("");
+            startBtn.disabled = true; // deshabilitamos botón start
+            inputArea.disabled = false; // habilitamos área de escritura
+            inputArea.focus();
 
-    textDisplay.forEach((span, index) => {
-        const char = typedText[index];
+            countdown = setInterval(() => {
+                timeLeft--;
+                timeField.value = timeLeft;
 
-        if (char == null) {
-            span.classList.remove("text-success", "text-danger");
-        } else if (char === span.textContent) {
-            span.classList.add("text-success");
-            span.classList.remove("text-danger");
-        } else {
-            span.classList.add("text-danger");
-            span.classList.remove("text-success");
-        }
-    });
-});
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+                timer.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
+                if (timeLeft <= 0) {
+                    submitTypingForm();
+                }
+            }, 1000);
+        });
+
+        // ✅ Resaltar letras mientras escribe
+        inputArea.addEventListener("input", () => {
+            const typedText = inputArea.value.split("");
+
+            textDisplay.forEach((span, index) => {
+                const char = typedText[index];
+
+                if (char == null) {
+                    span.classList.remove("text-success", "text-danger");
+                } else if (char === span.textContent) {
+                    span.classList.add("text-success");
+                    span.classList.remove("text-danger");
+                } else {
+                    span.classList.add("text-danger");
+                    span.classList.remove("text-success");
+                }
+            });
+            // Enviar si el usuario terminó el texto
+            const original = form.querySelector('input[name="original"]').value;
+            if (inputArea.value === original) {
+                submitTypingForm();
+            }
+        });
     </script>
 
 
